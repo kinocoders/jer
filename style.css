@@ -744,6 +744,9 @@
   .break-words {
     overflow-wrap: break-word;
   }
+  .whitespace-pre-line {
+    white-space: pre-line;
+  }
   .text-amber-800 {
     color: var(--color-amber-800);
   }
