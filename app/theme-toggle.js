@@ -1,0 +1,1 @@
+(()=>{try{"light"!==localStorage.getItem("theme")&&document.documentElement.classList.add("dark")}catch{document.documentElement.classList.add("dark")}window.__toggleTheme=()=>{let t=document.documentElement.classList.toggle("dark");try{localStorage.setItem("theme",t?"dark":"light")}catch{}}})();
