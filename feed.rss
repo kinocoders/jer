@@ -5,9 +5,16 @@
     <link>https://kinocoders.github.io/jer/</link>
     <atom:link href="https://kinocoders.github.io/jer/feed.rss" rel="self" type="application/rss+xml"/>
     <description>Chat archives from The Quartering streams.</description>
-    <lastBuildDate>Fri, 29 May 2026 15:31:05 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 01 Jun 2026 15:29:06 GMT</lastBuildDate>
     <language>en</language>
     <generator>Lume 3.2.4</generator>
+    <item>
+      <title>TODAY'S BREAKING NEWS &amp; WEEKEND CATCHUP</title>
+      <link>https://kinocoders.github.io/jer/streams/TheQuartering-437516342-20260601/</link>
+      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-437516342-20260601/</guid>
+      <content:encoded><![CDATA[]]></content:encoded>
+      <pubDate>Mon, 01 Jun 2026 12:51:21 GMT</pubDate>
+    </item>
     <item>
       <title>KARMELO ANTHONY TRIAL BEGINS, CANDACE OWENS BUSTED, TRUMP VS WOKE MUSICIANS</title>
       <link>https://kinocoders.github.io/jer/streams/TheQuartering-437302630-20260529/</link>
@@ -70,13 +77,6 @@
       <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-436706184-20260521/</guid>
       <content:encoded><![CDATA[]]></content:encoded>
       <pubDate>Thu, 21 May 2026 17:41:16 GMT</pubDate>
-    </item>
-    <item>
-      <title>DOORDASH MUST BE STOPPED</title>
-      <link>https://kinocoders.github.io/jer/streams/TheQuartering-436622448-20260520/</link>
-      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-436622448-20260520/</guid>
-      <content:encoded><![CDATA[]]></content:encoded>
-      <pubDate>Wed, 20 May 2026 17:56:10 GMT</pubDate>
     </item>
   </channel>
 </rss>
