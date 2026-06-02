@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html><head><meta content="website" property="og:type"><meta content="JerTracker 2000" property="og:site_name"><meta content="en" property="og:locale"><meta content="Chat archives from The Quartering streams." property="og:description"><meta content="https://kinocoders.github.io/jer/docs/superpowers/plans/2026-06-02-frontpage-overview-chart/" property="og:url"><meta content="https://kinocoders.github.io/jer/assets/og-card.png" property="og:image"><meta content="summary_large_image" name="twitter:card"><meta content="Chat archives from The Quartering streams." name="description"><meta content="Lume 3.2.4" name="generator"><meta content="1200" name="og:image:width"><meta content="630" name="og:image:height"><meta content="JerTracker 2000 logo" name="og:image:alt"><meta content="#0f172a" name="theme-color"><link rel="icon" sizes="32x32" href="/jer/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/jer/apple-touch-icon.png">
+<link rel="icon" sizes="any" href="/jer/favicon.svg" type="image/svg+xml">
+</head><body><h1>Frontpage 30-Day Overview Chart Implementation Plan</h1><blockquote><p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p></blockquote><p><strong>Goal:</strong> Add a frontpage chart showing the last 30 days of streams (rant $, $/hour, messages, hours per stream) so viewers can gauge earnings per hour streamed.</p><p><strong>Architecture:</strong> A pure build-time transform (<code>buildOverviewPoints</code>) reduces all stream <code>StatsJson</code> into a small per-stream point array, computed inside <code>index.page.tsx</code> and serialized into a JSON <code>&lt;script&gt;</code> tag. A client-side ECharts island (<code>OverviewChart.tsx</code>) reads + renders it, mounted by <code>app/main.jsx</code> — mirroring the existing per-stream chart island.</p><p><strong>Tech Stack:</strong> Deno, Lume (static site), React 19, ECharts 5 (<code>echarts/core</code> tree-shaken), Tailwind. Pure transform tested with <code>@std/assert</code> + <code>Deno.test</code>.</p><hr><h2>File Structure</h2><ul><li>Create <code>_includes/utils/overview.ts</code> — pure transform <code>buildOverviewPoints</code> (build-time, importable by page + test).</li><li>Create <code>_includes/utils/overview_test.ts</code> — Deno tests for the transform.</li><li>Create <code>app/components/OverviewChart.tsx</code> — ECharts combo island.</li><li>Modify <code>app/types/stats.ts</code> — add <code>OverviewPoint</code> type (single source of truth, imported by util + component).</li><li>Modify <code>index.page.tsx</code> — compute points, inject JSON + placeholder + bundle <code>&lt;script&gt;</code>.</li><li>Modify <code>app/main.jsx</code> — mount <code>OverviewChart</code> when <code>#island-overview-chart</code> exists.</li></ul><p>Existing patterns to follow:</p><ul><li>ECharts registration + toggle UI + tooltip: <code>app/components/StatsEcharts.tsx</code>.</li><li>Island placeholder style: <code>_includes/components/ChartPlaceholder.tsx</code>.</li><li>Island mount: <code>app/main.jsx</code> (<code>#island-stats-chart-echarts</code> block).</li><li>Date format / card style: <code>index.page.tsx</code>.</li></ul><hr><h2>Task 1: <code>OverviewPoint</code> type + <code>buildOverviewPoints</code> transform (TDD)</h2><p><strong>Files:</strong></p><ul><li><p>Modify: <code>app/types/stats.ts</code> (append type near other exported types, before <code>StatsJson</code> is fine — file is type-only)</p></li><li><p>Create: <code>_includes/utils/overview.ts</code></p></li><li><p>Test: <code>_includes/utils/overview_test.ts</code></p></li><li><p>[ ] <strong>Step 1: Add the <code>OverviewPoint</code> type</strong></p></li></ul><p>In <code>app/types/stats.ts</code>, append this exported type (anywhere top-level, e.g. just after the <code>Bucket</code> type definition):</p><pre><code class="language-typescript">export type OverviewPoint = {
+  date: string; // ISO started_at
+  title: string;
+  rantUsd: number;
+  hours: number;
+  msgs: number;
+  usdPerHour: number;
+};
+</code></pre><ul><li>[ ] <strong>Step 2: Write the failing test</strong></li></ul><p>Create <code>_includes/utils/overview_test.ts</code>:</p><pre><code class="language-typescript">import { assertEquals } from "jsr:@std/assert@^1.0.0";
+import { buildOverviewPoints } from "./overview.ts";
+import type { StatsJson } from "../../app/types/stats.ts";
+
+// Minimal StatsJson factory — only fields the transform reads.
+const mk = (
+  startedAt: string,
+  durationSeconds: number,
+  messages: number,
+  rantCents: number,
+  title = "Untitled",
+): { title: string; data: StatsJson } =&gt; ({
+  title,
+  data: {
+    meta: {
+      title,
+      started_at: startedAt,
+      ended_at: startedAt,
+      duration_seconds: durationSeconds,
+    },
+    stats: { totals: { messages, rant_total_cents: rantCents } },
+  } as unknown as StatsJson,
+});
+
+Deno.test("computes per-stream derived metrics", () =&gt; {
+  const points = buildOverviewPoints([
+    mk("2026-06-02T18:00:00Z", 3600, 500, 1200, "Show A"),
+  ]);
+  assertEquals(points.length, 1);
+  assertEquals(points[0], {
+    date: "2026-06-02T18:00:00Z",
+    title: "Show A",
+    rantUsd: 12,
+    hours: 1,
+    msgs: 500,
+    usdPerHour: 12,
+  });
+});
+
+Deno.test("usdPerHour is 0 when duration is 0 (no divide-by-zero)", () =&gt; {
+  const points = buildOverviewPoints([mk("2026-06-02T18:00:00Z", 0, 10, 500)]);
+  assertEquals(points[0].usdPerHour, 0);
+  assertEquals(points[0].hours, 0);
+});
+
+Deno.test("sorts ascending by date", () =&gt; {
+  const points = buildOverviewPoints([
+    mk("2026-06-02T18:00:00Z", 3600, 1, 0, "B"),
+    mk("2026-05-20T18:00:00Z", 3600, 1, 0, "A"),
+  ]);
+  assertEquals(points.map((p) =&gt; p.title), ["A", "B"]);
+});
+
+Deno.test("keeps only streams within 30 days of the most recent stream", () =&gt; {
+  const points = buildOverviewPoints([
+    mk("2026-06-02T18:00:00Z", 3600, 1, 0, "recent"),
+    mk("2026-05-10T18:00:00Z", 3600, 1, 0, "in-window"), // 23 days before anchor
+    mk("2026-04-01T18:00:00Z", 3600, 1, 0, "too-old"), // &gt;30 days before anchor
+  ]);
+  assertEquals(points.map((p) =&gt; p.title), ["in-window", "recent"]);
+});
+
+Deno.test("falls back to slug-less title when meta.title missing", () =&gt; {
+  const item = mk("2026-06-02T18:00:00Z", 3600, 1, 0);
+  item.data.meta.title = undefined;
+  const points = buildOverviewPoints([item]);
+  assertEquals(points[0].title, "Untitled stream");
+});
+
+Deno.test("empty input returns empty array", () =&gt; {
+  assertEquals(buildOverviewPoints([]), []);
+});
+</code></pre><ul><li>[ ] <strong>Step 3: Run test to verify it fails</strong></li></ul><p>Run: <code>deno test _includes/utils/overview_test.ts</code> Expected: FAIL — <code>Module not found "./overview.ts"</code> (file not created yet).</p><ul><li>[ ] <strong>Step 4: Write the implementation</strong></li></ul><p>Create <code>_includes/utils/overview.ts</code>:</p><pre><code class="language-typescript">import type { OverviewPoint, StatsJson } from "../../app/types/stats.ts";
+
+const WINDOW_DAYS = 30;
+const DAY_MS = 86_400_000;
+
+type StreamItem = { title: string; data: StatsJson };
+
+/**
+ * Reduce streams to a per-stream point array for the frontpage overview chart.
+ * Keeps streams within WINDOW_DAYS of the most recent stream, sorted ascending.
+ */
+export const buildOverviewPoints = (items: StreamItem[]): OverviewPoint[] =&gt; {
+  if (items.length === 0) return [];
+
+  const withTime = items.map((it) =&gt; ({
+    it,
+    ms: new Date(it.data.meta.started_at).getTime(),
+  }));
+
+  const anchor = Math.max(...withTime.map((w) =&gt; w.ms));
+  const cutoff = anchor - WINDOW_DAYS * DAY_MS;
+
+  return withTime
+    .filter((w) =&gt; w.ms &gt;= cutoff)
+    .sort((a, b) =&gt; a.ms - b.ms)
+    .map(({ it }) =&gt; {
+      const { meta, stats } = it.data;
+      const rantUsd = stats.totals.rant_total_cents / 100;
+      const hours = meta.duration_seconds / 3600;
+      return {
+        date: meta.started_at,
+        title: meta.title ?? "Untitled stream",
+        rantUsd,
+        hours,
+        msgs: stats.totals.messages,
+        usdPerHour: hours &gt; 0 ? rantUsd / hours : 0,
+      };
+    });
+};
+</code></pre><ul><li>[ ] <strong>Step 5: Run test to verify it passes</strong></li></ul><p>Run: <code>deno test _includes/utils/overview_test.ts</code> Expected: PASS — 6 tests pass.</p><ul><li>[ ] <strong>Step 6: Commit</strong></li></ul><pre><code class="language-bash">git add app/types/stats.ts _includes/utils/overview.ts _includes/utils/overview_test.ts
+git commit -m "feat: add buildOverviewPoints transform for frontpage chart"
+</code></pre><hr><h2>Task 2: <code>OverviewChart</code> ECharts component</h2><p><strong>Files:</strong></p><ul><li>Create: <code>app/components/OverviewChart.tsx</code></li></ul><p>No unit test — ECharts rendering is verified by the build + manual serve in Task 4. Follow <code>app/components/StatsEcharts.tsx</code> for registration, toggle UI, fullscreen, resize, and tooltip conventions.</p><ul><li>[ ] <strong>Step 1: Write the component</strong></li></ul><p>Create <code>app/components/OverviewChart.tsx</code>:</p><pre><code class="language-tsx">import { useEffect, useMemo, useRef, useState } from "react";
+import * as echarts from "echarts/core";
+import { BarChart, LineChart } from "echarts/charts";
+import {
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+} from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+import type { OverviewPoint } from "../types/stats.ts";
+
+echarts.use([
+  BarChart,
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  CanvasRenderer,
+]);
+
+type Props = { points: OverviewPoint[] };
+
+type MetricId = "rant" | "perHour" | "msgs" | "hours";
+
+type Metric = {
+  id: MetricId;
+  label: string;
+  color: string;
+  axis: "money" | "msgs" | "hours";
+  kind: "bar" | "line";
+  defaultOn: boolean;
+};
+
+const METRICS: Metric[] = [
+  {
+    id: "rant",
+    label: "Rant $",
+    color: "#d97706",
+    axis: "money",
+    kind: "bar",
+    defaultOn: true,
+  },
+  {
+    id: "perHour",
+    label: "$/hour",
+    color: "#9333ea",
+    axis: "money",
+    kind: "line",
+    defaultOn: true,
+  },
+  {
+    id: "msgs",
+    label: "Messages",
+    color: "#2563eb",
+    axis: "msgs",
+    kind: "line",
+    defaultOn: false,
+  },
+  {
+    id: "hours",
+    label: "Hours",
+    color: "#16a34a",
+    axis: "hours",
+    kind: "line",
+    defaultOn: false,
+  },
+];
+
+const valueOf = (p: OverviewPoint, id: MetricId): number =&gt;
+  id === "rant"
+    ? p.rantUsd
+    : id === "perHour"
+    ? p.usdPerHour
+    : id === "msgs"
+    ? p.msgs
+    : p.hours;
+
+const fmtUsd = (n: number) =&gt;
+  `$${
+    n.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  }`;
+
+const fmtMetric = (id: MetricId, n: number) =&gt;
+  id === "rant" || id === "perHour"
+    ? id === "perHour" ? `${fmtUsd(n)}/h` : fmtUsd(n)
+    : id === "hours"
+    ? `${n.toFixed(2)} h`
+    : n.toLocaleString();
+
+const dayLabel = (iso: string) =&gt;
+  new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+
+const OverviewChart = ({ points }: Props) =&gt; {
+  const ref = useRef&lt;HTMLDivElement&gt;(null);
+  const wrapRef = useRef&lt;HTMLDivElement&gt;(null);
+  const chartRef = useRef&lt;echarts.ECharts | null&gt;(null);
+  const [hidden, setHidden] = useState&lt;Set&lt;MetricId&gt;&gt;(
+    () =&gt; new Set(METRICS.filter((m) =&gt; !m.defaultOn).map((m) =&gt; m.id)),
+  );
+  const [isFs, setIsFs] = useState(false);
+
+  const toggleFullscreen = () =&gt; {
+    if (!document.fullscreenElement) wrapRef.current?.requestFullscreen();
+    else document.exitFullscreen();
+  };
+
+  const toggle = (id: MetricId) =&gt;
+    setHidden((prev) =&gt; {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  useEffect(() =&gt; {
+    const onChange = () =&gt; {
+      setIsFs(document.fullscreenElement === wrapRef.current);
+      requestAnimationFrame(() =&gt; chartRef.current?.resize());
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () =&gt; document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const labels = useMemo(() =&gt; points.map((p) =&gt; dayLabel(p.date)), [points]);
+
+  useEffect(() =&gt; {
+    if (!ref.current) return;
+    const chart = echarts.init(ref.current, null, { renderer: "canvas" });
+    chartRef.current = chart;
+    const ro = new ResizeObserver(() =&gt; chart.resize());
+    ro.observe(ref.current);
+    const onVisible = () =&gt; {
+      if (document.visibilityState === "visible") chart.resize();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    globalThis.addEventListener("pageshow", onVisible);
+    return () =&gt; {
+      ro.disconnect();
+      document.removeEventListener("visibilitychange", onVisible);
+      globalThis.removeEventListener("pageshow", onVisible);
+      chart.dispose();
+      chartRef.current = null;
+    };
+  }, []);
+
+  useEffect(() =&gt; {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    const visible = METRICS.filter((m) =&gt; !hidden.has(m.id));
+    const usesMsgs = visible.some((m) =&gt; m.axis === "msgs");
+    const usesHours = visible.some((m) =&gt; m.axis === "hours");
+
+    // yAxis index map: 0 = money (always), 1 = msgs, 2 = hours.
+    const axisIndex = { money: 0, msgs: 1, hours: 2 };
+
+    chart.setOption(
+      {
+        animation: false,
+        grid: { left: 48, right: 56, top: 16, bottom: 48 },
+        tooltip: {
+          trigger: "axis",
+          axisPointer: { type: "shadow" },
+          backgroundColor: "#ffffff",
+          borderColor: "#e2e8f0",
+          textStyle: { color: "#1e293b", fontSize: 12 },
+          formatter: (params: { dataIndex: number }[]) =&gt; {
+            if (!Array.isArray(params) || params.length === 0) return "";
+            const i = params[0].dataIndex;
+            const p = points[i];
+            const rows = METRICS.map((m) =&gt;
+              `&lt;tr&gt;&lt;td style="padding:2px 0"&gt;&lt;span style="display:inline-flex;align-items:center;gap:6px"&gt;&lt;span style="display:inline-block;width:8px;height:8px;background:${m.color};border-radius:2px"&gt;&lt;/span&gt;${m.label}&lt;/span&gt;&lt;/td&gt;&lt;td style="text-align:right;padding:2px 0 2px 12px;font-variant-numeric:tabular-nums;font-weight:500;color:#0f172a"&gt;${
+                fmtMetric(m.id, valueOf(p, m.id))
+              }&lt;/td&gt;&lt;/tr&gt;`
+            ).join("");
+            return `&lt;div style="font-weight:600;margin-bottom:2px;color:#334155;max-width:240px;white-space:normal"&gt;${p.title}&lt;/div&gt;&lt;div style="color:#94a3b8;font-size:11px;margin-bottom:6px"&gt;${
+              new Date(p.date).toLocaleDateString()
+            }&lt;/div&gt;&lt;table style="border-collapse:collapse;min-width:180px"&gt;&lt;tbody&gt;${rows}&lt;/tbody&gt;&lt;/table&gt;`;
+          },
+        },
+        legend: { show: false },
+        xAxis: {
+          type: "category",
+          data: labels,
+          axisLabel: { fontSize: 11, rotate: labels.length &gt; 14 ? 45 : 0 },
+          axisLine: { lineStyle: { color: "#94a3b8" } },
+        },
+        yAxis: [
+          {
+            type: "value",
+            name: "$",
+            position: "left",
+            axisLabel: { fontSize: 11, formatter: (v: number) =&gt; `$${v}` },
+            splitLine: { lineStyle: { color: "#e2e8f0" } },
+          },
+          {
+            type: "value",
+            name: "msgs",
+            position: "right",
+            show: usesMsgs,
+            axisLabel: { fontSize: 11 },
+            splitLine: { show: false },
+          },
+          {
+            type: "value",
+            name: "h",
+            position: "right",
+            offset: usesMsgs ? 44 : 0,
+            show: usesHours,
+            axisLabel: { fontSize: 11 },
+            splitLine: { show: false },
+          },
+        ],
+        series: visible.map((m) =&gt; ({
+          name: m.label,
+          type: m.kind,
+          yAxisIndex: axisIndex[m.axis],
+          smooth: m.kind === "line",
+          showSymbol: false,
+          data: points.map((p) =&gt; +valueOf(p, m.id).toFixed(2)),
+          itemStyle: { color: m.color },
+          lineStyle: m.kind === "line"
+            ? { color: m.color, width: 2 }
+            : undefined,
+          emphasis: { focus: "series" as const },
+        })),
+      },
+      { notMerge: true },
+    );
+  }, [points, labels, hidden]);
+
+  if (points.length === 0) return null;
+
+  return (
+    &lt;section className="space-y-2"&gt;
+      &lt;h2 className="text-lg font-semibold"&gt;Last 30 days&lt;/h2&gt;
+      &lt;p className="text-sm text-slate-500 dark:text-zinc-400"&gt;
+        Per stream: rant earnings and $/hour. Toggle messages &amp; hours below.
+      &lt;/p&gt;
+      &lt;div
+        ref={wrapRef}
+        className={`relative rounded border border-slate-200 dark:border-zinc-300 bg-white dark:bg-zinc-200 p-2 ${
+          isFs ? "flex flex-col h-screen w-screen rounded-none" : ""
+        }`}
+      &gt;
+        &lt;button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={isFs ? "Exit fullscreen" : "Enter fullscreen"}
+          title={isFs ? "Exit fullscreen" : "Fullscreen"}
+          className="absolute top-2 right-2 z-10 rounded p-1.5 border border-slate-200 bg-white/80 text-slate-600 hover:bg-slate-50 hover:text-slate-900 cursor-pointer transition-colors"
+        &gt;
+          &lt;svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-4 h-4"
+          &gt;
+            {isFs
+              ? (
+                &lt;&gt;
+                  &lt;path d="M9 4v3a2 2 0 0 1-2 2H4" /&gt;
+                  &lt;path d="M20 9h-3a2 2 0 0 1-2-2V4" /&gt;
+                  &lt;path d="M4 15h3a2 2 0 0 1 2 2v3" /&gt;
+                  &lt;path d="M15 20v-3a2 2 0 0 1 2-2h3" /&gt;
+                &lt;/&gt;
+              )
+              : (
+                &lt;&gt;
+                  &lt;path d="M4 9V5a1 1 0 0 1 1-1h4" /&gt;
+                  &lt;path d="M20 9V5a1 1 0 0 0-1-1h-4" /&gt;
+                  &lt;path d="M4 15v4a1 1 0 0 0 1 1h4" /&gt;
+                  &lt;path d="M20 15v4a1 1 0 0 1-1 1h-4" /&gt;
+                &lt;/&gt;
+              )}
+          &lt;/svg&gt;
+        &lt;/button&gt;
+        &lt;div ref={ref} className={isFs ? "flex-1 w-full" : "h-72 w-full"} /&gt;
+        &lt;div className="flex flex-wrap gap-2 px-1 pt-2"&gt;
+          {METRICS.map((m) =&gt; {
+            const off = hidden.has(m.id);
+            return (
+              &lt;button
+                key={m.id}
+                type="button"
+                onClick={() =&gt; toggle(m.id)}
+                className={`flex items-center gap-1.5 text-xs rounded px-2 py-1 border transition-colors cursor-pointer ${
+                  off
+                    ? "border-slate-200 bg-slate-50 text-slate-400 dark:border-zinc-300 dark:bg-zinc-100 dark:text-zinc-500"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-zinc-300 dark:bg-white dark:text-zinc-700 dark:hover:bg-zinc-100"
+                }`}
+                aria-pressed={!off}
+              &gt;
+                &lt;span
+                  className="w-3 h-0.5 rounded-sm"
+                  style={{ background: off ? "#cbd5e1" : m.color }}
+                /&gt;
+                &lt;span&gt;{m.label}&lt;/span&gt;
+              &lt;/button&gt;
+            );
+          })}
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+  );
+};
+
+export default OverviewChart;
+</code></pre><ul><li>[ ] <strong>Step 2: Type-check the app workspace</strong></li></ul><p>Run: <code>deno check app/components/OverviewChart.tsx</code> Expected: PASS (no type errors). If ECharts option typings complain, the <code>setOption</code> object can be cast <code>as echarts.EChartsCoreOption</code> — match how <code>StatsEcharts.tsx</code> handles it (it passes a plain object; mirror that).</p><ul><li>[ ] <strong>Step 3: Commit</strong></li></ul><pre><code class="language-bash">git add app/components/OverviewChart.tsx
+git commit -m "feat: add OverviewChart ECharts component"
+</code></pre><hr><h2>Task 3: Wire into frontpage + mount island</h2><p><strong>Files:</strong></p><ul><li><p>Modify: <code>index.page.tsx</code></p></li><li><p>Modify: <code>app/main.jsx</code></p></li><li><p>[ ] <strong>Step 1: Compute points and inject into the frontpage</strong></p></li></ul><p>In <code>index.page.tsx</code>, add the import near the top (after existing imports):</p><pre><code class="language-tsx">import { buildOverviewPoints } from "./_includes/utils/overview.ts";
+</code></pre><p>Inside the default export, after the <code>streams</code> are fetched and before/around the <code>groups</code> loop, compute the points:</p><pre><code class="language-tsx">const overviewPoints = buildOverviewPoints(
+  streams.map((s) =&gt; ({ title: s.title, data: s.data })),
+);
+</code></pre><p>Then in the returned JSX, add the island card as the first child inside <code>&lt;main&gt;</code> (above the <code>&lt;div class="space-y-6"&gt;</code> list), and emit the data + bundle scripts. The component is mounted client-side, so server-render only the placeholder + JSON.</p><blockquote><p><strong>IMPORTANT — ssx, not React:</strong> <code>index.page.tsx</code> is rendered server-side by Lume's ssx runtime, which uses <code>class=</code> (not <code>className=</code>) and injects raw HTML via the <code>{{ __html: ... }}</code> <em>child</em> object (see <code>base.tsx</code>'s <code>{{ __html: "&lt;!doctype html&gt;" }}</code>). Do <strong>not</strong> use React's <code>dangerouslySetInnerHTML</code> here. Escape <code>&lt;</code> to <code>&lt;</code> so a <code>&lt;/script&gt;</code> inside a stream title cannot break out of the JSON script tag; <code>JSON.parse</code> on the client decodes it back.</p></blockquote><pre><code class="language-tsx">return (
+  &lt;main class="mx-auto max-w-3xl p-6 space-y-6"&gt;
+    &lt;h1 class="text-3xl font-bold"&gt;Jer's Fun Rumble Chats&lt;/h1&gt;
+
+    {overviewPoints.length &gt; 0 &amp;&amp; (
+      &lt;&gt;
+        &lt;div id="island-overview-chart"&gt;
+          &lt;section class="space-y-2"&gt;
+            &lt;h2 class="text-lg font-semibold"&gt;Last 30 days&lt;/h2&gt;
+            &lt;div class="h-72 rounded border border-slate-200 dark:border-zinc-300 bg-white dark:bg-zinc-200 flex items-center justify-center"&gt;
+              &lt;div class="flex items-center gap-2 text-sm text-slate-500 dark:text-zinc-600"&gt;
+                &lt;span
+                  class="inline-block h-4 w-4 rounded-full border-2 border-slate-300 border-t-slate-600 dark:border-zinc-400 dark:border-t-zinc-700 animate-spin"
+                  aria-hidden="true"
+                /&gt;
+                &lt;span&gt;Loading chart…&lt;/span&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/section&gt;
+        &lt;/div&gt;
+        &lt;script type="application/json" id="overview-data"&gt;
+          {{
+            __html: JSON.stringify(overviewPoints).replaceAll("&lt;", "\\u003c"),
+          }}
+        &lt;/script&gt;
+      &lt;/&gt;
+    )}
+
+    &lt;div class="space-y-6"&gt;
+      {groups.map((g) =&gt; (
+        // ...unchanged existing list rendering...
+      ))}
+    &lt;/div&gt;
+  &lt;/main&gt;
+);
+</code></pre><p>Keep the existing <code>groups.map(...)</code> list body exactly as-is. After the closing <code>&lt;/main&gt;</code>, the bundle script must load — but <code>index.page.tsx</code> returns a single <code>&lt;main&gt;</code> root. Wrap the return in a fragment so the script is a sibling:</p><pre><code class="language-tsx">return (
+  &lt;&gt;
+    &lt;main class="mx-auto max-w-3xl p-6 space-y-6"&gt;
+      {/* ...everything above... */}
+    &lt;/main&gt;
+    {overviewPoints.length &gt; 0 &amp;&amp; (
+      &lt;script type="module" src="/app/main.js"&gt;&lt;/script&gt;
+    )}
+  &lt;/&gt;
+);
+</code></pre><blockquote><p>Note: the site uses <code>modifyUrls</code> to prefix <code>/app/main.js</code> with the prod <code>suffix</code> automatically, the same way <code>stream.tsx</code> references <code>/app/main.js</code> via <code>url(...)</code>. To be safe and consistent with <code>stream.tsx</code>, use the <code>url</code> helper. <code>index.page.tsx</code>'s default export currently takes only <code>{ search }</code>; extend its signature to also receive helpers:</p></blockquote><pre><code class="language-tsx">export default ({ search }: Lume.Data, { url }: Lume.Helpers) =&gt; {
+  // ...
+  // and render the script as:
+  // &lt;script type="module" src={url("/app/main.js")}&gt;&lt;/script&gt;
+};
+</code></pre><ul><li>[ ] <strong>Step 2: Mount the island in <code>app/main.jsx</code></strong></li></ul><p>In <code>app/main.jsx</code>, the existing <code>whenActivated(() =&gt; { ... })</code> block fetches stream-data and mounts stream-page islands. Add an independent mount for the overview chart at the top of <code>whenActivated</code>'s callback (it must run regardless of the <code>stream-data</code> meta tag, which is absent on the frontpage):</p><pre><code class="language-jsx">whenActivated(() =&gt; {
+  const overview = document.getElementById("island-overview-chart");
+  const overviewData = document.getElementById("overview-data");
+  if (overview &amp;&amp; overviewData) {
+    const points = JSON.parse(overviewData.textContent);
+    import("./components/OverviewChart.tsx").then(
+      ({ default: OverviewChart }) =&gt; {
+        createRoot(overview).render(&lt;OverviewChart points={points} /&gt;);
+      },
+    );
+  }
+
+  const dataMeta = document.querySelector('meta[name="stream-data"]');
+  if (dataMeta) {
+    // ...existing stream-data fetch + mount block, unchanged...
+  }
+});
+</code></pre><ul><li>[ ] <strong>Step 3: Build the site</strong></li></ul><p>Run: <code>DEV= deno task build</code> Expected: build completes with no errors; <code>_site/index.html</code> contains <code>id="island-overview-chart"</code> and <code>id="overview-data"</code>, and <code>_site/app/</code> contains the chunked bundle.</p><p>Verify:</p><pre><code class="language-bash">grep -c "island-overview-chart" _site/index.html
+grep -c "overview-data" _site/index.html
+</code></pre><p>Expected: each prints <code>1</code>.</p><ul><li>[ ] <strong>Step 4: Commit</strong></li></ul><pre><code class="language-bash">git add index.page.tsx app/main.jsx
+git commit -m "feat: render 30-day overview chart on frontpage"
+</code></pre><hr><h2>Task 4: Quality gate + manual verification</h2><p><strong>Files:</strong> none (verification only)</p><ul><li>[ ] <strong>Step 1: Run the full test suite</strong></li></ul><p>Run: <code>deno test</code> Expected: all tests pass (the 6 <code>overview_test.ts</code> tests).</p><ul><li>[ ] <strong>Step 2: Type check + format</strong></li></ul><p>Run: <code>deno task dev:quality</code> Expected: type check passes; <code>deno fmt</code> reports no changes needed (or formats the new files — if it reformats, re-commit the formatting).</p><ul><li>[ ] <strong>Step 3: Manual serve check</strong></li></ul><p>Run: <code>deno task serve</code> Then open the local URL. Confirm:</p><ul><li><p>Frontpage shows a "Last 30 days" card above the stream list.</p></li><li><p>Default view: rant $ bars + purple $/hour line; messages &amp; hours buttons appear "off".</p></li><li><p>Toggling "Messages" / "Hours" adds those lines and their right-side axes.</p></li><li><p>Hovering a bar shows a tooltip with stream title, date, and all four metric values.</p></li><li><p>Dark mode (theme toggle) renders the card legibly.</p></li><li><p>Fullscreen button expands the chart.</p></li><li><p>No console errors.</p></li><li><p>[ ] <strong>Step 4: Final commit (if fmt changed anything)</strong></p></li></ul><pre><code class="language-bash">git add -A
+git commit -m "chore: formatting for overview chart" || true
+</code></pre><hr><h2>Self-Review Notes</h2><ul><li><strong>Spec coverage:</strong> per-stream x-axis (Task 1 sort + Task 2 category axis) ✓; explicit $/hour line (Task 1 <code>usdPerHour</code>, Task 2 <code>perHour</code> metric) ✓; multi-axis combo bar+lines (Task 2 yAxis[0..2] + bar/line series) ✓; default rant $ + $/hour on, msgs/hours off (Task 2 <code>defaultOn</code>) ✓; window = 30 days from most recent stream (Task 1 anchor/cutoff) ✓; mount via main.js bundle on frontpage only (Task 3) ✓; placeholder card style (Task 3 mirrors <code>ChartPlaceholder</code>) ✓; tooltip with all metrics (Task 2 formatter) ✓.</li><li><strong>Type consistency:</strong> <code>OverviewPoint</code> fields (<code>date</code>, <code>title</code>, <code>rantUsd</code>, <code>hours</code>, <code>msgs</code>, <code>usdPerHour</code>) identical across type def, transform, test, and component. <code>buildOverviewPoints(items)</code> input shape <code>{title, data}</code> matches the call site mapping in Task 3.</li><li><strong>No placeholders:</strong> all code blocks complete; no TBD/TODO.</li></ul></body></html>
