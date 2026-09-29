@@ -5,9 +5,16 @@
     <link>https://kinocoders.github.io/jer/</link>
     <atom:link href="https://kinocoders.github.io/jer/feed.rss" rel="self" type="application/rss+xml"/>
     <description>Chat archives from The Quartering streams.</description>
-    <lastBuildDate>Mon, 28 Sep 2026 19:36:55 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2026 02:05:30 GMT</lastBuildDate>
     <language>en</language>
     <generator>Lume 3.2.4</generator>
+    <item>
+      <title>WOW Forever Test</title>
+      <link>https://kinocoders.github.io/jer/streams/TheQuartering-446689940-20260929/</link>
+      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-446689940-20260929/</guid>
+      <content:encoded><![CDATA[]]></content:encoded>
+      <pubDate>Tue, 29 Sep 2026 00:54:05 GMT</pubDate>
+    </item>
     <item>
       <title>Lone Juror STRIKES BACK, Walmart Abandons Scam, McDonalds Panics &amp; Blizzard Blasted</title>
       <link>https://kinocoders.github.io/jer/streams/TheQuartering-446663622-20260928/</link>
@@ -350,13 +357,6 @@
       <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-442176962-20260729/</guid>
       <content:encoded><![CDATA[]]></content:encoded>
       <pubDate>Wed, 29 Jul 2026 17:56:41 GMT</pubDate>
-    </item>
-    <item>
-      <title>ILHAN OMAR LINKED TO FRAUD, CONSERVATHOTS HAVE GONE TOO FAR, RACE RIOTS IN WISCONSIN COLLAPSE</title>
-      <link>https://kinocoders.github.io/jer/streams/TheQuartering-442168006-20260729/</link>
-      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-442168006-20260729/</guid>
-      <content:encoded><![CDATA[]]></content:encoded>
-      <pubDate>Wed, 29 Jul 2026 16:01:59 GMT</pubDate>
     </item>
   </channel>
 </rss>
