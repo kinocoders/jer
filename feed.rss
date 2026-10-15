@@ -5,9 +5,16 @@
     <link>https://kinocoders.github.io/jer/</link>
     <atom:link href="https://kinocoders.github.io/jer/feed.rss" rel="self" type="application/rss+xml"/>
     <description>Chat archives from The Quartering streams.</description>
-    <lastBuildDate>Wed, 14 Oct 2026 18:12:13 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 15 Oct 2026 01:02:50 GMT</lastBuildDate>
     <language>en</language>
     <generator>Lume 3.2.4</generator>
+    <item>
+      <title>WWE Main Event! &amp; Hang Out!</title>
+      <link>https://kinocoders.github.io/jer/streams/TheQuartering-447949494-20261015/</link>
+      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-447949494-20261015/</guid>
+      <content:encoded><![CDATA[]]></content:encoded>
+      <pubDate>Wed, 14 Oct 2026 23:59:31 GMT</pubDate>
+    </item>
     <item>
       <title>Shane Gillis MELTDOWN Goes Nuclear, Another Murderous Mom STRIKES, Daily Wire Movie Meltdown &amp; More</title>
       <link>https://kinocoders.github.io/jer/streams/TheQuartering-447924584-20261014/</link>
@@ -350,13 +357,6 @@
       <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-443328480-20260813/</guid>
       <content:encoded><![CDATA[]]></content:encoded>
       <pubDate>Thu, 13 Aug 2026 17:49:19 GMT</pubDate>
-    </item>
-    <item>
-      <title>TYLER ROBINSON ADMITS HE DID IT! CANDACE IS PANICKING ABOUT ANDREW WILSON DEBATE, WNBA MELTODWN</title>
-      <link>https://kinocoders.github.io/jer/streams/TheQuartering-443248106-20260812/</link>
-      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-443248106-20260812/</guid>
-      <content:encoded><![CDATA[]]></content:encoded>
-      <pubDate>Wed, 12 Aug 2026 18:01:23 GMT</pubDate>
     </item>
   </channel>
 </rss>
