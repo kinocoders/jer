@@ -5,9 +5,16 @@
     <link>https://kinocoders.github.io/jer/</link>
     <atom:link href="https://kinocoders.github.io/jer/feed.rss" rel="self" type="application/rss+xml"/>
     <description>Chat archives from The Quartering streams.</description>
-    <lastBuildDate>Tue, 03 Nov 2026 20:22:16 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 04 Nov 2026 04:58:33 GMT</lastBuildDate>
     <language>en</language>
     <generator>Lume 3.2.4</generator>
+    <item>
+      <title>2026 Midterms Livestream! Were All The Polls Wrong Or Are We Going Full Commie!</title>
+      <link>https://kinocoders.github.io/jer/streams/TheQuartering-449558200-20261104/</link>
+      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-449558200-20261104/</guid>
+      <content:encoded><![CDATA[]]></content:encoded>
+      <pubDate>Wed, 04 Nov 2026 01:12:45 GMT</pubDate>
+    </item>
     <item>
       <title>Democrats PANIC Over Red Wave, Ilhan Omar Issues New Threat, Midterms Chaos!</title>
       <link>https://kinocoders.github.io/jer/streams/TheQuartering-449532226-20261103/</link>
@@ -350,13 +357,6 @@
       <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-444637596-20260831/</guid>
       <content:encoded><![CDATA[]]></content:encoded>
       <pubDate>Mon, 31 Aug 2026 17:56:27 GMT</pubDate>
-    </item>
-    <item>
-      <title>FREE 1500 POKER TOURNAMENT WITH VIEWERS!</title>
-      <link>https://kinocoders.github.io/jer/streams/TheQuartering-444507496-20260829/</link>
-      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-444507496-20260829/</guid>
-      <content:encoded><![CDATA[]]></content:encoded>
-      <pubDate>Sat, 29 Aug 2026 20:55:08 GMT</pubDate>
     </item>
   </channel>
 </rss>
