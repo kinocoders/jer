@@ -5,9 +5,16 @@
     <link>https://kinocoders.github.io/jer/</link>
     <atom:link href="https://kinocoders.github.io/jer/feed.rss" rel="self" type="application/rss+xml"/>
     <description>Chat archives from The Quartering streams.</description>
-    <lastBuildDate>Tue, 24 Nov 2026 20:40:13 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 25 Nov 2026 19:43:36 GMT</lastBuildDate>
     <language>en</language>
     <generator>Lume 3.2.4</generator>
+    <item>
+      <title>Today's News!</title>
+      <link>https://kinocoders.github.io/jer/streams/TheQuartering-451362058-20261125/</link>
+      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-451362058-20261125/</guid>
+      <content:encoded><![CDATA[]]></content:encoded>
+      <pubDate>Wed, 25 Nov 2026 17:45:30 GMT</pubDate>
+    </item>
     <item>
       <title>LEAD BOMB TO DETONATE, MICROSOFT DECLARES CODE RED &amp; TODAY'S OTHER NEWS!</title>
       <link>https://kinocoders.github.io/jer/streams/TheQuartering-451261912-20261124/</link>
@@ -350,13 +357,6 @@
       <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-446295582-20260923/</guid>
       <content:encoded><![CDATA[]]></content:encoded>
       <pubDate>Wed, 23 Sep 2026 17:55:34 GMT</pubDate>
-    </item>
-    <item>
-      <title>Playing Some WOW Beta!</title>
-      <link>https://kinocoders.github.io/jer/streams/TheQuartering-446242996-20260923/</link>
-      <guid isPermaLink="false">https://kinocoders.github.io/jer/streams/TheQuartering-446242996-20260923/</guid>
-      <content:encoded><![CDATA[]]></content:encoded>
-      <pubDate>Wed, 23 Sep 2026 00:22:45 GMT</pubDate>
     </item>
   </channel>
 </rss>
